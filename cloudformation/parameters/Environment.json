@@ -1,0 +1,70 @@
+[
+    {
+        "ParameterKey": "Version",
+        "ParameterValue": "version11"
+    },
+    {
+        "ParameterKey": "InstanceAMI",
+        "ParameterValue": "ami-4836a428"
+    },
+    {
+        "ParameterKey": "KeyPair",
+        "ParameterValue": "metis.qc.to-us-west-2-test"
+    },
+    {
+        "ParameterKey": "VPCCIDR",
+        "ParameterValue": "10.10.0.0/16"
+    },
+    {
+        "ParameterKey": "VPCPubSub1CIDR",
+        "ParameterValue": "10.10.0.0/24"
+    },
+    {
+        "ParameterKey": "VPCPriSub1CIDR",
+        "ParameterValue": "10.10.1.0/24"
+    },
+    {
+        "ParameterKey": "VPCPubSub2CIDR",
+        "ParameterValue": "10.10.2.0/24"
+    },
+    {
+        "ParameterKey": "VPCPriSub2CIDR",
+        "ParameterValue": "10.10.3.0/24"
+    },
+    {
+        "ParameterKey": "DBPassword",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "DBUserName",
+        "ParameterValue": "root"
+    },
+    {
+        "ParameterKey": "DBInstanceClass",
+        "ParameterValue": "db.t2.micro"
+    },
+    {
+        "ParameterKey": "DBAllocatedStorage",
+        "ParameterValue": "5"
+    },
+    {
+        "ParameterKey": "DomainName",
+        "ParameterValue": "metis.qc.to"
+    },
+    {
+        "ParameterKey": "S3urlforVPCtemplate",
+        "ParameterValue": "http://s3-us-west-2.amazonaws.com/testing-metis/templates/VPC.cft.yml"
+    },
+    {
+        "ParameterKey": "RDSTableCreationFunctionBucket",
+        "ParameterValue": "testing-metis"
+    },
+    {
+        "ParameterKey": "RDSTableCreationFunctionKey",
+        "ParameterValue": "functions/create_table_func.zip"
+    },
+    {
+        "ParameterKey": "HTTPListenerCertificateArn",
+        "ParameterValue": "arn:aws:iam::042836644938:server-certificate/metis.qc.to"
+    }
+]

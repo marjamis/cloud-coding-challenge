@@ -1,0 +1,22 @@
+<title>Index</title>
+
+<style>
+  body { text-align: center; padding: 10%; }
+  h1 { font-size: 35px; }
+  article { display: block; text-align: left; width: 650px; margin: 0
+auto; }
+</style>
+
+
+<article>
+    <h1>Customer Index page hosted from the instance: </h1>
+    <h2>{{.InstanceId}}</h2>
+    <div>
+        <h3>Data from database. The last hit to the database was???</h3>
+        DB Id: {{.Data.Id}}</br>
+        Instance Id: {{.Data.InstanceId}}</br>
+        Requester IP: {{.Data.RequesterIp}}</br>
+        On the: {{.Data.AddedDate}}</br>
+        <b>From:</b> The Metis Team</p>
+    </div>
+</article>

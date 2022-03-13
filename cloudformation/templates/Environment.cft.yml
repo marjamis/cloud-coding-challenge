@@ -1,0 +1,671 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AWS CloudFormation Template for Stan Technical Assesment
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "VPC Configuration"
+        Parameters:
+          - VPCCIDR
+          - VPCPubSub1CIDR
+          - VPCPubSub2CIDR
+          - VPCPriSub1CIDR
+          - VPCPriSub2CIDR
+      - Label:
+          default: "R53 Configuration"
+        Parameters:
+          - DomainName
+      - Label:
+          default: "EC2 Configuration"
+        Parameters:
+          - InstanceType
+          - KeyPair
+      - Label:
+          default: "ALB/TargetGroup Configuration"
+        Parameters:
+          - TGHealthCheckIntervalSeconds
+          - TGHealthCheckProtocol
+          - TGHealthCheckPort
+          - TGHealthCheckTimeoutSeconds
+          - TGUnhealthyThresholdCount
+          - TGHealthCheckPath
+          - TGRoutingPort
+          - TGRoutingProtocol
+      - Label:
+          default: "ASG Configuration"
+        Parameters:
+          - MinSize
+          - MaxSize
+          - CreatePolicySignalCount
+          - CreatePolicySignalTimeout
+          - UpdatePauseTime
+          - UpdatePolicyMinInstances
+          - UpdatePolicyMaxBatchSize
+          - Version
+      - Label:
+          default: "RDS Configuration"
+        Parameters:
+          - DBInstanceClass
+          - DBUserName
+          - DBPassword
+          - DBAllocatedStorage
+      - Label:
+          default: "S3 and CF Configuration"
+        Parameters:
+           - S3urlforVPCtemplate
+      - Label:
+          default: "RDS Table Creation via LambdaFunction"
+        Parameters:
+           - RDSTableCreationFunctionBucket
+           - RDSTableCreationFunctionKey
+
+Parameters:
+  InstanceType:
+    Description: The type of Instance for Backend Servers.
+    Type: String
+    MinLength: 1
+    MaxLength: 64
+    Default: t2.micro
+  Version:
+    Description: Version Id to change the Launch Configuration to kickoff an application update.
+    Type: String
+    MinLength: 5
+    MaxLength: 64
+    ConstraintDescription: "Size of the string needs to be from 5 - 64 characters long"
+  KeyPair:
+    Description: "Amazon EC2 Key Pair"
+    Type: "AWS::EC2::KeyPair::KeyName"
+  EnvironmentType:
+    Description: The environment type must be prod or staging or test
+    Type: String
+    Default: test
+    AllowedValues:
+      - test
+    ConstraintDescription: "Currently only test"
+
+  VPCCIDR:
+    Description: The IP address range for your new Private VPC.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 172.0.0.0/16
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "must be a valid IP CIDR range of the form x.x.x.x/x."
+  VPCPubSub1CIDR:
+    Description: The IP address range for PublicSubnet1 in Private VPC.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 172.0.10.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "must be a valid IP CIDR range of the form x.x.x.x/x."
+  VPCPubSub2CIDR:
+    Description: The IP address range for PublicSubnet2 in Private VPC.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 172.0.20.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "must be a valid IP CIDR range of the form x.x.x.x/x."
+  VPCPriSub1CIDR:
+    Description: The IP address range for PrivateSubnet1 in Private VPC.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 172.0.1.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "must be a valid IP CIDR range of the form x.x.x.x/x."
+  VPCPriSub2CIDR:
+    Description: The IP address range for PrivateSubnet2 in Private VPC.
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 172.0.2.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "must be a valid IP CIDR range of the form x.x.x.x/x."
+
+  DBPassword:
+    NoEcho: true
+    Default: DBP1234
+    Description: The database admin account password
+    Type: String
+    MinLength: 1
+    MaxLength: 41
+    AllowedPattern: "[a-zA-Z0-9]*"
+  DBUserName:
+    Description: The database admin account Username
+    Type: String
+    Default: DBUser
+    MinLength: 1
+    MaxLength: 41
+    AllowedPattern: "[a-zA-Z0-9]*"
+  DBInstanceClass:
+    Description: The Class of Instance for Database
+    Type: String
+    MinLength: 1
+    MaxLength: 64
+    Default: db.t2.micro
+    ConstraintDescription: "must select a valid database instance type."
+  DBAllocatedStorage:
+      Default: 5
+      Description: "The amount of storage (in gigabytes) to be initially allocated for the database instance."
+      Type: Number
+      MinValue: 5
+      MaxValue: 1024
+      ConstraintDescription: "Must be an integer from 5 to 6144."
+
+  DomainName:
+    Description: The DomainName for HostedZone
+    Type: String
+    AllowedPattern: "(?!-)[a-zA-Z0-9-.]{1,63}(?<!-)"
+    ConstraintDescription: "must be a valid DNS zone name in format of example.com"
+
+  TGHealthCheckIntervalSeconds:
+    Description: The approximate number of seconds between health checks for an individual target.
+    Type: Number
+    Default: 60
+  TGHealthCheckProtocol:
+    Description: The protocol that the load balancer uses when performing health checks on the targets, such as HTTP or HTTPS.
+    Type: String
+    Default: HTTP
+  TGHealthCheckPort:
+    Description: The port that the load balancer uses when performing health checks on the targets.
+    Type: String
+    Default: 8081
+  TGHealthCheckTimeoutSeconds:
+    Description: The amount of time, in seconds, during which no response from a target means a failed health check
+    Type: Number
+    Default: 5
+  TGUnhealthyThresholdCount:
+    Description: The number of consecutive health checks successes required before considering an unhealthy target healthy.
+    Type: Number
+    Default: 5
+  TGHealthCheckPath:
+    Description: The ping path destination where Elastic Load Balancing sends health check request
+    Type: String
+    Default: /healthcheck
+  TGRoutingPort:
+    Description: The port on which the targets receive traffic.
+    Type: Number
+    Default: 80
+  TGRoutingProtocol:
+    Description: The protocol to use for routing traffic to the targets.
+    Type: String
+    Default: HTTP
+  HTTPListenerCertificateArn:
+    Description: The ARN for the HTTPs Certificate
+    Type: String
+
+  MinSize:
+    Description: The minimum size of the Auto Scaling group.
+    Type: String
+    Default: 2
+  MaxSize:
+    Description: The maximum size of the Auto Scaling group.
+    Type: String
+    Default: 4
+  CreatePolicySignalCount:
+    Description: The number of success signals AWS CloudFormation must receive before it sets the resource status as CREATE_COMPLETE.
+    Type: String
+    Default: 1
+  CreatePolicySignalTimeout:
+    Description: The length of time that AWS CloudFormation waits for the number of signals that was specified in the Count property.
+    Type: String
+    Default: PT15M
+  UpdatePolicyMinInstances:
+    Description: The minimum number of instances that must be in service within the ASG while AWS CloudFormation updates old instances.
+    Type: Number
+    Default: 1
+  UpdatePolicyMaxBatchSize:
+    Description: The maximum number of instances that AWS CloudFormation updates.
+    Type: Number
+    Default: 1
+  UpdatePauseTime:
+    Description: The amount of time that AWS CloudFormation pauses after making a change to a batch of instances
+    Type: String
+    Default: PT15M
+  InstanceAMI:
+    Description: AMI used for the instances
+    Type: String
+
+  S3urlforVPCtemplate:
+    Description: The S3 url for VPC template
+    Type: String
+    ConstraintDescription: "must be a valid S3 Url in format of https://s3.amazonaws.com/<bucket-name>/<template.yaml>"
+
+  RDSTableCreationFunctionBucket:
+    Description: S3 Bucket storing the RDS Table creation function
+    Type: String
+  RDSTableCreationFunctionKey:
+    Description: S3 Bucket storing the RDS Table creation function
+    Type: String
+
+Mappings:
+  # Maping between region and ALB account-id
+  Region2ELBAccountId:
+    us-east-1:
+      "AccountId": "127311923021"
+    us-west-1:
+      "AccountId": "027434742980"
+    us-west-2:
+      "AccountId": "797873946194"
+    eu-west-1:
+      "AccountId": "156460612806"
+    ap-northeast-1:
+      "AccountId": "582318560864"
+    ap-northeast-2:
+      "AccountId": "600734575887"
+    ap-southeast-1:
+      "AccountId": "114774131450"
+    ap-southeast-2:
+      "AccountId": "783225319266"
+    ap-south-1:
+      "AccountId": "718504428378"
+    us-east-2:
+      "AccountId": "033677994240"
+    sa-east-1:
+      "AccountId": "507241528517"
+    cn-north-1:
+      "AccountId": "638102146993"
+    eu-central-1:
+      "AccountId": "054676820928"
+
+Resources:
+  HostedZone:
+    Type: "AWS::Route53::HostedZone"
+    Properties:
+      HostedZoneConfig:
+        Comment: "Hosted Zone for metis"
+      Name: !Ref DomainName
+      HostedZoneTags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  DBSubnetGroup:
+    Type: "AWS::RDS::DBSubnetGroup"
+    Properties:
+      DBSubnetGroupDescription: "SubnetGroup to allow DB access"
+      SubnetIds:
+        - !GetAtt VPCStack.Outputs.PrivateSubnet1
+        - !GetAtt VPCStack.Outputs.PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  RDSInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      DBName: !Join ["", [ "metis", !Ref EnvironmentType ] ]
+      AllocatedStorage:
+        Ref: DBAllocatedStorage
+      DBInstanceClass:
+        Ref: DBInstanceClass
+      DBSecurityGroups:
+        - Ref: DBSecurityGroup
+      DBSubnetGroupName:
+        Ref: DBSubnetGroup
+      Engine: "mariadb"
+      MasterUsername:
+        Ref: DBUserName
+      MasterUserPassword:
+        Ref: DBPassword
+      MultiAZ: false
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+    DeletionPolicy: "Delete"
+
+  RDSTableCreationFunction:
+    DependsOn: RDSInstance
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code:
+        S3Bucket: !Ref RDSTableCreationFunctionBucket
+        S3Key: !Ref RDSTableCreationFunctionKey
+      Description: "Used to create the RDS Instances initial table"
+      FunctionName: create_base_db_table
+      Handler: create_db_table.handler
+      Role: !GetAtt LambdaFunctionRole.Arn
+      Runtime: python3.6
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref ASGSecurityGroup
+        SubnetIds:
+          - !GetAtt VPCStack.Outputs.PrivateSubnet1
+
+  RDSTableCreationFunctionInvoke:
+    Type: "Custom::RDSTableCreation"
+    Properties:
+      ServiceToken: !GetAtt RDSTableCreationFunction.Arn
+      DBEndpoint: !Sub ${EnvironmentType}-rds.${DomainName}
+      User: !Ref DBUserName
+      Password: !Ref DBPassword
+      DB: !Join ["", [ "metis", !Ref EnvironmentType] ]
+
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Ref S3urlforVPCtemplate
+      TimeoutInMinutes: '60'
+      Parameters:
+        VPCIDCIDRRange: !Ref VPCCIDR
+        VPCPublicSubnet1CIDRRange: !Ref VPCPubSub1CIDR
+        VPCPublicSubnet2CIDRRange:  !Ref VPCPubSub2CIDR
+        VPCPrivateSubnet1CIDRRange: !Ref VPCPriSub1CIDR
+        VPCPrivateSubnet2CIDRRange: !Ref VPCPriSub2CIDR
+        Environment: !Ref EnvironmentType
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  # Securitygroups created in VPC for ALB , ASG, RDS
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow http to client host"
+      VpcId:
+        !GetAtt VPCStack.Outputs.VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  DBSecurityGroup:
+    Type: AWS::RDS::DBSecurityGroup
+    Properties:
+      EC2VpcId:
+        !GetAtt VPCStack.Outputs.VpcId
+      DBSecurityGroupIngress:
+        EC2SecurityGroupId:
+          Ref: ASGSecurityGroup
+      GroupDescription: Website access
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  ASGSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        !GetAtt VPCStack.Outputs.VpcId
+      GroupDescription: Enable HTTP access to ALB SecurityGroup
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '0'
+        ToPort: '65535'
+        SourceSecurityGroupId:
+          Fn::GetAtt:
+          - ALBSecurityGroup
+          - GroupId
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Join ["-", [!Ref EnvironmentType,"LoadBalancer"] ]
+      Scheme: internet-facing
+      Subnets:
+        - !GetAtt VPCStack.Outputs.PublicSubnet1
+        - !GetAtt VPCStack.Outputs.PublicSubnet2
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '60'
+      SecurityGroups:
+        - Ref: ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: !Ref TGHealthCheckIntervalSeconds
+      HealthCheckProtocol: !Ref TGHealthCheckProtocol
+      HealthCheckPort: !Ref TGHealthCheckPort
+      HealthCheckTimeoutSeconds: !Ref TGHealthCheckTimeoutSeconds
+      UnhealthyThresholdCount: !Ref TGUnhealthyThresholdCount
+      HealthCheckPath: !Ref TGHealthCheckPath
+      Name: !Join ["-", [!Ref EnvironmentType,"ALBTargetGroup"] ]
+      Port: !Ref TGRoutingPort
+      Protocol: !Ref TGRoutingProtocol
+      VpcId:
+        !GetAtt VPCStack.Outputs.VpcId
+      TargetGroupAttributes:
+         - Key: deregistration_delay.timeout_seconds
+           Value: '45'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: ALBTargetGroup
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  HTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn:
+            Ref: ALBTargetGroup
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref HTTPListenerCertificateArn
+
+  InstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "ECRAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "ecr:*"
+                Resource: "*"
+  InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+        - Ref: InstanceRole
+
+  LambdaFunctionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "LambdaFunction"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "ec2:*"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:*"
+                Resource: "*"
+
+  LaunchConfig:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Metadata:
+      Version: !Ref Version
+    Properties:
+      AssociatePublicIpAddress: false
+      KeyName: !Ref KeyPair
+      ImageId: !Ref InstanceAMI
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+        - !Ref ASGSecurityGroup
+      IamInstanceProfile: !Ref InstanceProfile
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          yum install -y aws-cli aws-cfn-bootstrap docker
+          service docker start
+          aws ecr get-login --region ${AWS::Region} | bash
+          docker run -dit --name metis -p 8081:8081 -e Version=${Version} -e UserName=${DBUserName} -e Password=${DBPassword} -e Endpoint=${EnvironmentType}-rds.${DomainName} -e Port=3306 -e Name=metis${EnvironmentType} 042836644938.dkr.ecr.us-west-2.amazonaws.com/metis:metis-v1
+          docker run -dit --name metis-redirecter --link metis -p 80:80 042836644938.dkr.ecr.us-west-2.amazonaws.com/metis:metis-redirecter
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
+
+  AutoScalingGroup:
+    DependsOn: RDSTableCreationFunction
+    Type: AWS::AutoScaling::AutoScalingGroup
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref CreatePolicySignalCount
+        Timeout: !Ref CreatePolicySignalTimeout
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: !Ref UpdatePolicyMinInstances
+        MaxBatchSize: !Ref UpdatePolicyMaxBatchSize
+        WaitOnResourceSignals: "true"
+        PauseTime: !Ref UpdatePauseTime
+    Properties:
+      VPCZoneIdentifier:
+        - !GetAtt VPCStack.Outputs.PrivateSubnet1
+        - !GetAtt VPCStack.Outputs.PrivateSubnet2
+      LaunchConfigurationName:
+        Ref: LaunchConfig
+      TargetGroupARNs:
+        - !Ref ALBTargetGroup
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 60
+      MaxSize: !Ref MaxSize
+      MinSize: !Ref MinSize
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-${EnvironmentType}"
+          PropagateAtLaunch : true
+
+  ASGScaleUp:
+    Type: "AWS::AutoScaling::ScalingPolicy"
+    Properties:
+      AdjustmentType: "ChangeInCapacity"
+      PolicyType: "SimpleScaling"
+      Cooldown: "150"
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      ScalingAdjustment: 1
+
+  CPUHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "High Alarm for AutoScaling - Scale up by 1 if CPUUtilization > 90 for 10mins"
+      AlarmActions:
+        - Ref: ASGScaleUp
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '90'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+
+  ASGScaleDown:
+    Type: "AWS::AutoScaling::ScalingPolicy"
+    Properties:
+      AdjustmentType: "ChangeInCapacity"
+      PolicyType: "SimpleScaling"
+      Cooldown: "150"
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      ScalingAdjustment: -1
+
+  CPULowAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Low Alarm for AutoScaling - Scale down by 1 if CPUUtilization < 40% for 10mins"
+      AlarmActions:
+        - Ref: ASGScaleDown
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: '300'
+      EvaluationPeriods: '2'
+      Threshold: '40'
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+
+  ALB:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId : !Ref HostedZone
+      RecordSets:
+        - AliasTarget:
+            HostedZoneId : !GetAtt LoadBalancer.CanonicalHostedZoneID
+            DNSName : !GetAtt LoadBalancer.DNSName
+          Name: !Ref DomainName
+          Type: "A"
+
+  RDSEndpoint:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId : !Ref HostedZone
+      RecordSets:
+        - Name: !Join ["", [ !Ref EnvironmentType, "-rds", ".", !Ref DomainName]]
+          Type: "CNAME"
+          TTL: "600"
+          ResourceRecords:
+            - !GetAtt RDSInstance.Endpoint.Address
+
+Outputs:
+  FrontendURL:
+    Description: The Web Url
+    Value: !Join [ "", [ "http://", !Ref ALB] ]
