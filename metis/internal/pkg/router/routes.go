@@ -1,6 +1,4 @@
-package main
-
-type Routes []Route
+package router
 
 var routes = Routes{
 	// HealthCheck Route

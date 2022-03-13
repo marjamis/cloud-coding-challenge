@@ -1,10 +1,13 @@
-package main
+package router
 
 import (
 	"html/template"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/marjamis/cloud-coding-challenge/metis/internal/pkg/database"
+	"github.com/marjamis/cloud-coding-challenge/metis/internal/pkg/instance"
+
+	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -15,7 +18,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 	t, err := template.ParseFiles(filename)
 	if err != nil {
-	  log.Error(err)
+		log.Error(err)
 	}
 
 	dbData, err := GetDBData()
@@ -25,7 +28,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 	WriteData(r)
 
-	data := &IndexResponse{InstanceId: INSTANCE_ID, Data: dbData}
+	data := &IndexResponse{InstanceID: instance.InstanceID, Data: dbData}
 	t.Execute(w, data)
 }
 
@@ -52,7 +55,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	filename := "templates/healthcheck.html"
 	state := false
 
-	err := DB_CONNECTION.Ping()
+	err := database.DBConnection.Ping()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"Function": "HealthCheckDatabasePing",
@@ -62,7 +65,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		state = true
 	}
 
-  data := &HealthCheckResponse{DBHealthy: state}
+	data := &HealthCheckResponse{DBHealthy: state}
 	t, err := template.ParseFiles(filename)
 	if err != nil {
 		log.Error(err)
