@@ -53,12 +53,12 @@ Metadata:
       - Label:
           default: "S3 and CF Configuration"
         Parameters:
-           - S3urlforVPCtemplate
+          - S3urlforVPCtemplate
       - Label:
           default: "RDS Table Creation via LambdaFunction"
         Parameters:
-           - RDSTableCreationFunctionBucket
-           - RDSTableCreationFunctionKey
+          - RDSTableCreationFunctionBucket
+          - RDSTableCreationFunctionKey
 
 Parameters:
   InstanceType:
@@ -148,12 +148,12 @@ Parameters:
     Default: db.t2.micro
     ConstraintDescription: "must select a valid database instance type."
   DBAllocatedStorage:
-      Default: 5
-      Description: "The amount of storage (in gigabytes) to be initially allocated for the database instance."
-      Type: Number
-      MinValue: 5
-      MaxValue: 1024
-      ConstraintDescription: "Must be an integer from 5 to 6144."
+    Default: 5
+    Description: "The amount of storage (in gigabytes) to be initially allocated for the database instance."
+    Type: Number
+    MinValue: 5
+    MaxValue: 1024
+    ConstraintDescription: "Must be an integer from 5 to 6144."
 
   DomainName:
     Description: The DomainName for HostedZone
@@ -296,7 +296,7 @@ Resources:
   RDSInstance:
     Type: "AWS::RDS::DBInstance"
     Properties:
-      DBName: !Join ["", [ "metis", !Ref EnvironmentType ] ]
+      DBName: !Join ["", ["metis", !Ref EnvironmentType]]
       AllocatedStorage:
         Ref: DBAllocatedStorage
       DBInstanceClass:
@@ -342,17 +342,17 @@ Resources:
       DBEndpoint: !Sub ${EnvironmentType}-rds.${DomainName}
       User: !Ref DBUserName
       Password: !Ref DBPassword
-      DB: !Join ["", [ "metis", !Ref EnvironmentType] ]
+      DB: !Join ["", ["metis", !Ref EnvironmentType]]
 
   VPCStack:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Ref S3urlforVPCtemplate
-      TimeoutInMinutes: '60'
+      TimeoutInMinutes: "60"
       Parameters:
         VPCIDCIDRRange: !Ref VPCCIDR
         VPCPublicSubnet1CIDRRange: !Ref VPCPubSub1CIDR
-        VPCPublicSubnet2CIDRRange:  !Ref VPCPubSub2CIDR
+        VPCPublicSubnet2CIDRRange: !Ref VPCPubSub2CIDR
         VPCPrivateSubnet1CIDRRange: !Ref VPCPriSub1CIDR
         VPCPrivateSubnet2CIDRRange: !Ref VPCPriSub2CIDR
         Environment: !Ref EnvironmentType
@@ -365,16 +365,15 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow http to client host"
-      VpcId:
-        !GetAtt VPCStack.Outputs.VpcId
+      VpcId: !GetAtt VPCStack.Outputs.VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
+          FromPort: "80"
+          ToPort: "80"
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
+          FromPort: "443"
+          ToPort: "443"
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
@@ -383,8 +382,7 @@ Resources:
   DBSecurityGroup:
     Type: AWS::RDS::DBSecurityGroup
     Properties:
-      EC2VpcId:
-        !GetAtt VPCStack.Outputs.VpcId
+      EC2VpcId: !GetAtt VPCStack.Outputs.VpcId
       DBSecurityGroupIngress:
         EC2SecurityGroupId:
           Ref: ASGSecurityGroup
@@ -396,17 +394,16 @@ Resources:
   ASGSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId:
-        !GetAtt VPCStack.Outputs.VpcId
+      VpcId: !GetAtt VPCStack.Outputs.VpcId
       GroupDescription: Enable HTTP access to ALB SecurityGroup
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '0'
-        ToPort: '65535'
-        SourceSecurityGroupId:
-          Fn::GetAtt:
-          - ALBSecurityGroup
-          - GroupId
+        - IpProtocol: tcp
+          FromPort: "0"
+          ToPort: "65535"
+          SourceSecurityGroupId:
+            Fn::GetAtt:
+              - ALBSecurityGroup
+              - GroupId
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-${EnvironmentType}"
@@ -414,14 +411,14 @@ Resources:
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Join ["-", [!Ref EnvironmentType,"LoadBalancer"] ]
+      Name: !Join ["-", [!Ref EnvironmentType, "LoadBalancer"]]
       Scheme: internet-facing
       Subnets:
         - !GetAtt VPCStack.Outputs.PublicSubnet1
         - !GetAtt VPCStack.Outputs.PublicSubnet2
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
-          Value: '60'
+          Value: "60"
       SecurityGroups:
         - Ref: ALBSecurityGroup
       Tags:
@@ -437,14 +434,13 @@ Resources:
       HealthCheckTimeoutSeconds: !Ref TGHealthCheckTimeoutSeconds
       UnhealthyThresholdCount: !Ref TGUnhealthyThresholdCount
       HealthCheckPath: !Ref TGHealthCheckPath
-      Name: !Join ["-", [!Ref EnvironmentType,"ALBTargetGroup"] ]
+      Name: !Join ["-", [!Ref EnvironmentType, "ALBTargetGroup"]]
       Port: !Ref TGRoutingPort
       Protocol: !Ref TGRoutingProtocol
-      VpcId:
-        !GetAtt VPCStack.Outputs.VpcId
+      VpcId: !GetAtt VPCStack.Outputs.VpcId
       TargetGroupAttributes:
-         - Key: deregistration_delay.timeout_seconds
-           Value: '45'
+        - Key: deregistration_delay.timeout_seconds
+          Value: "45"
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-${EnvironmentType}"
@@ -453,9 +449,12 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-        - Type: forward
+        - Type: redirect
           TargetGroupArn:
             Ref: ALBTargetGroup
+          RedirectConfig:
+            Port: 443
+            Protocol: HTTPS
       LoadBalancerArn:
         Ref: LoadBalancer
       Port: 80
@@ -481,8 +480,7 @@ Resources:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
-          -
-            Effect: "Allow"
+          - Effect: "Allow"
             Principal:
               Service:
                 - "ec2.amazonaws.com"
@@ -490,13 +488,11 @@ Resources:
               - "sts:AssumeRole"
       Path: "/"
       Policies:
-        -
-          PolicyName: "ECRAccess"
+        - PolicyName: "ECRAccess"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              -
-                Effect: "Allow"
+              - Effect: "Allow"
                 Action:
                   - "ecr:*"
                 Resource: "*"
@@ -513,8 +509,7 @@ Resources:
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
-          -
-            Effect: "Allow"
+          - Effect: "Allow"
             Principal:
               Service:
                 - "lambda.amazonaws.com"
@@ -522,18 +517,15 @@ Resources:
               - "sts:AssumeRole"
       Path: "/"
       Policies:
-        -
-          PolicyName: "LambdaFunction"
+        - PolicyName: "LambdaFunction"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              -
-                Effect: "Allow"
+              - Effect: "Allow"
                 Action:
                   - "ec2:*"
                 Resource: "*"
-              -
-                Effect: "Allow"
+              - Effect: "Allow"
                 Action:
                   - "logs:*"
                 Resource: "*"
@@ -551,8 +543,7 @@ Resources:
         - !Ref ASGSecurityGroup
       IamInstanceProfile: !Ref InstanceProfile
       UserData:
-        Fn::Base64:
-          !Sub |
+        Fn::Base64: !Sub |
           #!/bin/bash -xe
           yum install -y aws-cli aws-cfn-bootstrap docker
           service docker start
@@ -589,7 +580,7 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-${EnvironmentType}"
-          PropagateAtLaunch : true
+          PropagateAtLaunch: true
 
   ASGScaleUp:
     Type: "AWS::AutoScaling::ScalingPolicy"
@@ -609,9 +600,9 @@ Resources:
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
-      Period: '300'
-      EvaluationPeriods: '2'
-      Threshold: '90'
+      Period: "300"
+      EvaluationPeriods: "2"
+      Threshold: "90"
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
         - Name: AutoScalingGroupName
@@ -635,9 +626,9 @@ Resources:
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
-      Period: '300'
-      EvaluationPeriods: '2'
-      Threshold: '40'
+      Period: "300"
+      EvaluationPeriods: "2"
+      Threshold: "40"
       ComparisonOperator: LessThanThreshold
       Dimensions:
         - Name: AutoScalingGroupName
@@ -646,20 +637,20 @@ Resources:
   ALB:
     Type: AWS::Route53::RecordSetGroup
     Properties:
-      HostedZoneId : !Ref HostedZone
+      HostedZoneId: !Ref HostedZone
       RecordSets:
         - AliasTarget:
-            HostedZoneId : !GetAtt LoadBalancer.CanonicalHostedZoneID
-            DNSName : !GetAtt LoadBalancer.DNSName
+            HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+            DNSName: !GetAtt LoadBalancer.DNSName
           Name: !Ref DomainName
           Type: "A"
 
   RDSEndpoint:
     Type: AWS::Route53::RecordSetGroup
     Properties:
-      HostedZoneId : !Ref HostedZone
+      HostedZoneId: !Ref HostedZone
       RecordSets:
-        - Name: !Join ["", [ !Ref EnvironmentType, "-rds", ".", !Ref DomainName]]
+        - Name: !Join ["", [!Ref EnvironmentType, "-rds", ".", !Ref DomainName]]
           Type: "CNAME"
           TTL: "600"
           ResourceRecords:
@@ -668,4 +659,4 @@ Resources:
 Outputs:
   FrontendURL:
     Description: The Web Url
-    Value: !Join [ "", [ "http://", !Ref ALB] ]
+    Value: !Join ["", ["http://", !Ref ALB]]
