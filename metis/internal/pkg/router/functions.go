@@ -5,11 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	// This is required for database connections
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/marjamis/cloud-coding-challenge/metis/internal/pkg/database"
 	"github.com/marjamis/cloud-coding-challenge/metis/internal/pkg/instance"
+
 	uuid "github.com/nu7hatch/gouuid"
 	log "github.com/sirupsen/logrus"
 )

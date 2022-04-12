@@ -19,7 +19,8 @@ const (
 	DBMaxOpenConnections int = 0
 )
 
-func init() {
+// CreateDBConnection creates a connection to the database and sets any required configurations
+func CreateDBConnection() {
 	DBConnection, err := sql.Open("mysql",
 		os.Getenv("UserName")+":"+
 			os.Getenv("Password")+"@tcp("+

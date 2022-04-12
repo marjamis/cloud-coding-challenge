@@ -6,15 +6,15 @@ import (
 	"github.com/marjamis/cloud-coding-challenge/metis/internal/pkg/database"
 	"github.com/marjamis/cloud-coding-challenge/metis/internal/pkg/router"
 
-	_ "github.com/go-sql-driver/mysql"
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
 	router := router.NewRouter()
+	database.CreateDBConnection()
 	defer database.DBConnection.Close()
 
-	//Start the HTTP webserver listening
+	// Start the HTTP webserver listening
 	log.WithFields(log.Fields{
 		"Function": "main",
 	}).Info("HTTP Listening on port 8081...")

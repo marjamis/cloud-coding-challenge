@@ -14,7 +14,8 @@ import (
 Index Handler - Controls any call to / and will call functions to read/write to the database and use a template for the html response.
 */
 func Index(w http.ResponseWriter, r *http.Request) {
-	filename := "templates/index.html"
+	// TODO fix this pathing as it's a bit too crazy
+	filename := "../../../configs/templates/index.html"
 
 	t, err := template.ParseFiles(filename)
 	if err != nil {
@@ -36,7 +37,8 @@ func Index(w http.ResponseWriter, r *http.Request) {
 NotFound Handler - will return a 404 HTTP Code and a custom HTML page when the route is matched.
 */
 func NotFound(w http.ResponseWriter, r *http.Request) {
-	filename := "templates/http_404.html"
+	// TODO fix this pathing as it's a bit too crazy
+	filename := "../../../configs/templates/http_404.html"
 
 	w.WriteHeader(http.StatusNotFound)
 
@@ -52,7 +54,8 @@ HealthCheck Handler - Simple healthcheck which checks that the DB is still conta
 Also returns a light html page for easy review of the health.
 */
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	filename := "templates/healthcheck.html"
+	// TODO fix this pathing as it's a bit too crazy
+	filename := "../../../configs/templates/healthcheck.html"
 	state := false
 
 	err := database.DBConnection.Ping()
