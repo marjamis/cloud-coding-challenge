@@ -2,7 +2,7 @@
 
 ---
 
-**NOTICE:** This is my submission from many years ago and therefore isn't currently up to newer standards and/or approaches. I may over time go about updating this repo, such as using CDK instead of CFN templates, but there is no guarantee and should be reviewed with this in mind.
+**NOTICE:** This is my submission from many years ago and therefore isn't currently up to newer standards and/or approaches. I may over time go about updating this repo, such as using CDK instead of CFN templates, but there is no guarantee and should be reviewed with this in mind. That being said, don't hesitate to track the GitHub issues for what I may work on in the future.
 
 ---
 
@@ -47,7 +47,7 @@ We'll complete our review of the live environment within 2 business days so that
 
 ---
 
-# My notes
+# My notes at the time of submission (any future plans will differ from the below)
 
 ## General Notes
 
